@@ -55,7 +55,7 @@ function getSheetsClient() {
     // Netlify env vars store literal "\n" as two characters — unescape them
     // back into real newlines, which the PEM key needs to parse.
     const key = rawKey.replace(/\\n/g, '\n');
-    const auth = new google.auth.JWT(email, null, key, ['https://www.googleapis.com/auth/spreadsheets']);
+    const auth = new google.auth.JWT({ email, key, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
     sheetsClientPromise = auth.authorize().then(() => google.sheets({ version: 'v4', auth }));
   }
   return sheetsClientPromise;
