@@ -234,6 +234,8 @@ exports.handler = async (event) => {
         emailLength: (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '').length,
         emailValue: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || null,
         sheetIdSet: !!process.env.GOOGLE_SHEET_ID,
+        sheetIdValue: process.env.GOOGLE_SHEET_ID || null,
+        deployedAt: '2026-09-05T-check3',
         keySet: !!rawKey,
         keyLength: rawKey.length,
         keyStartsWithHeader: rawKey.replace(/\\n/g, '\n').trim().startsWith('-----BEGIN PRIVATE KEY-----'),
