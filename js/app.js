@@ -319,6 +319,14 @@ window.onYouTubeIframeAPIReady = function () {
   }
 };
 
+// Defensive fallback: index.html loads this script before the YouTube
+// one specifically so the callback above exists in time, but if some
+// caching/ordering quirk still lets YT finish first, don't wait forever
+// for a ready signal that already fired into a void — check directly.
+if (typeof YT !== 'undefined' && YT.Player) {
+  window.onYouTubeIframeAPIReady();
+}
+
 function loadYouTubePlayer(youtubeId) {
   if (!ytApiReady || typeof YT === 'undefined' || !YT.Player) {
     pendingYoutubeId = youtubeId;
