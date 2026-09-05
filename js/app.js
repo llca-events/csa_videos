@@ -30,7 +30,7 @@ function cacheEls() {
     'upNextMeta', 'upNextLang', 'playerHint',
     'completionModal', 'modalIconRing', 'modalIcon', 'modalHead', 'modalSub',
     'modalPoints', 'modalBadge', 'modalBadgeIcon', 'modalBadgeName', 'modalBadgeLine',
-    'modalFoot', 'modalPrimaryBtn', 'modalSecondaryBtn',
+    'modalFoot', 'modalPrimaryBtn', 'modalSecondaryBtn', 'modalCloseBtn',
     'badgesBackBtn', 'badgesPoints', 'badgesRainbowFill', 'badgesPctLabel',
     'badgesCountLabel', 'badgesGrid'
   ].forEach((id) => { els[id] = document.getElementById(id); });
@@ -62,6 +62,9 @@ function init() {
     hideModal();
     goHome();
   });
+
+  // Dismiss-only — just closes the card, no navigation, video stays as-is.
+  els.modalCloseBtn.addEventListener('click', hideModal);
 
   els.statsRow.addEventListener('click', goBadges);
   els.badgesBackBtn.addEventListener('click', goHome);

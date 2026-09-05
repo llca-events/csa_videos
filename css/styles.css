@@ -308,6 +308,7 @@ h1, h2, h3 { margin: 0; font-family: 'Nunito', system-ui, sans-serif; font-weigh
 .modal-overlay[hidden] { display: none; }
 
 .modal-card {
+  position: relative;
   width: 100%;
   max-width: 295px;
   background: var(--card);
@@ -317,6 +318,21 @@ h1, h2, h3 { margin: 0; font-family: 'Nunito', system-ui, sans-serif; font-weigh
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
   animation: pop 0.38s cubic-bezier(0.2, 1.2, 0.3, 1) both;
 }
+.modal-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  border-radius: 999px;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--ink-quiet);
+  cursor: pointer;
+}
+.modal-close-btn:hover { background: var(--bg); color: var(--ink-faint); }
 @keyframes pop {
   0% { transform: scale(0.82); opacity: 0; }
   60% { transform: scale(1.03); opacity: 1; }

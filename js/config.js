@@ -4,7 +4,9 @@
 const CONFIG = {
   // Game rules (from design spec / mockup props panel)
   pointsPerVideo: 10,
-  completionThreshold: 90, // % of a video that counts as "watched"
+  completionThreshold: 100, // % of a video that counts as "watched" — must
+  // finish the whole thing, not just get most of the way through, so
+  // members don't miss content near the end.
 
   // Badge thresholds are PERCENTAGES of the total catalog size, not fixed
   // counts — see LLCA_Tracker_Build_Notes.md #2. Resolved against the real
