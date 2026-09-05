@@ -299,10 +299,11 @@ h1, h2, h3 { margin: 0; font-family: 'Nunito', system-ui, sans-serif; font-weigh
   inset: 0;
   background: rgba(27, 26, 23, 0.62);
   backdrop-filter: blur(3px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 22px;
+  /* Block layout + its own scroll, not flex-centering — a card taller
+     than a short landscape-phone viewport must stay reachable (including
+     the close button) by scrolling, not get clipped above the fold. */
+  overflow-y: auto;
+  padding: 22px 22px 0;
   z-index: 30;
 }
 .modal-overlay[hidden] { display: none; }
@@ -311,6 +312,7 @@ h1, h2, h3 { margin: 0; font-family: 'Nunito', system-ui, sans-serif; font-weigh
   position: relative;
   width: 100%;
   max-width: 295px;
+  margin: 0 auto 22px;
   background: var(--card);
   border-radius: 28px;
   padding: 26px 22px;
