@@ -177,36 +177,6 @@ exports.handler = async (event) => {
       return json(200, buildProgressMap(videos, mine));
     }
 
-    // TEMPORARY: raw dump of a token's actual Progress rows, in sheet
-    // order, to debug the write path. Remove once confirmed working.
-    if (event.httpMethod === 'GET' && resource === 'progress-raw') {
-      if (!params.token) return json(400, { error: 'token required' });
-      const rawRows = await readRange(sheets, PROGRESS_RANGE);
-      const mine = rawRows
-        .map((r, i) => ({ sheetRow: i + 1, row: r }))
-        .filter((x) => x.row[0] === params.token);
-      return json(200, mine);
-    }
-
-    // TEMPORARY: dump Overview's actual formulas (not computed values) for
-    // a small range, to see what the xlsx→Sheets conversion left intact
-    // vs. broken. Remove once the timestamp-not-showing issue is fixed.
-    if (event.httpMethod === 'GET' && resource === 'overview-debug') {
-      // Column E = real column for token 2q747z (confirmed via the
-      // token-row check). Range is caller-specified via ?range=E1:E20
-      // so this doesn't need a redeploy per row checked.
-      const range = `Overview!${params.range || 'E1:E6'}`;
-      const [formulas, values] = await Promise.all([
-        sheets.spreadsheets.values.get({
-          spreadsheetId: process.env.GOOGLE_SHEET_ID, range, valueRenderOption: 'FORMULA'
-        }),
-        sheets.spreadsheets.values.get({
-          spreadsheetId: process.env.GOOGLE_SHEET_ID, range, valueRenderOption: 'FORMATTED_VALUE'
-        })
-      ]);
-      return json(200, { formulas: formulas.data.values || [], values: values.data.values || [] });
-    }
-
     if (event.httpMethod === 'GET' && resource === 'roster') {
       // Real access control — the client-side gate in admin.js is only
       // UX; this check is what actually protects the data.
