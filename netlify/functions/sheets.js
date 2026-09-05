@@ -122,11 +122,19 @@ function progressRowsForToken(progressRows, token) {
 function buildProgressMap(videos, progressRowsForThisToken) {
   const map = {};
   videos.forEach((v) => { map[v.id] = { videoId: v.id, status: 'todo', pct: 0, completedAt: null }; });
+  // If duplicate rows exist for the same video (a stray re-append, a
+  // retried write, etc.), a completed row must always win over a later
+  // partial one — never let "done" get masked just because a partial
+  // row happens to sit lower in the sheet. Among multiple non-done rows,
+  // the highest watched % wins.
   progressRowsForThisToken.forEach((r) => {
     const videoId = Number(r[1]);
     const watchedFraction = Number(r[2] || 0);
     const completed = r[3] === '1' || r[3] === 1 || r[3] === true;
     const pct = Math.round(watchedFraction * 100);
+    const existing = map[videoId];
+    if (existing && existing.status === 'done' && !completed) return; // done already wins
+    if (existing && existing.status === 'partial' && !completed && pct <= existing.pct) return;
     map[videoId] = {
       videoId,
       status: completed ? 'done' : (pct > 0 ? 'partial' : 'todo'),
