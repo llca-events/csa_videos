@@ -247,7 +247,8 @@ exports.handler = async (event) => {
         token,
         String(videoId),
         watchedFraction,
-        completed ? 1 : 0,
+        completed, // real boolean — Overview's formulas compare this to TRUE(), a
+        // number 1 doesn't satisfy that strict equality even though it looks equivalent
         completed ? now : '',
         completed ? Number(points || 0) : 0,
         key
