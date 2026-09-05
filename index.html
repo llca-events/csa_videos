@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLCA Cybersecurity Video Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Nunito:wght@800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- Screen 1 — Personal Playlist -->
+  <section id="screen-home" class="screen">
+    <header class="home-header">
+      <h1 id="greeting"></h1>
+      <p id="cheer" class="cheer"></p>
+    </header>
+
+    <div class="progress-card">
+      <div class="progress-card-top">
+        <span id="pctLabel" class="pct-label"></span>
+        <span id="doneLabel" class="done-label"></span>
+      </div>
+      <div class="rainbow-bar-track">
+        <div id="rainbowFill" class="rainbow-bar-fill"></div>
+      </div>
+      <p id="timeLeftLabel" class="time-left"></p>
+      <div id="statsRow" class="stats-row">
+        <div class="stats-group">
+          <div class="stat">
+            <div id="pointsValue" class="stat-value">0</div>
+            <div class="stat-label">points</div>
+          </div>
+          <div class="stat">
+            <div id="badgeValue" class="stat-value">0 / 0</div>
+            <div class="stat-label">badges</div>
+          </div>
+        </div>
+        <div class="stats-chevron">›</div>
+      </div>
+    </div>
+
+    <div id="videoGroups" class="video-groups"></div>
+  </section>
+
+  <!-- Screen 2 — Video Player -->
+  <section id="screen-player" class="screen" hidden>
+    <div class="player-topbar">
+      <button id="backBtn" class="link-back" type="button">‹ Playlist</button>
+      <span id="currentYear" class="year-pill"></span>
+    </div>
+
+    <div class="player-wrap">
+      <div id="youtubePlayer"></div>
+    </div>
+
+    <div class="local-bar-track">
+      <div id="localBarFill" class="local-bar-fill"></div>
+    </div>
+
+    <div class="player-body">
+      <div class="player-title-row">
+        <h2 id="currentTitle"></h2>
+        <span id="currentLang" class="lang-badge"></span>
+      </div>
+      <div class="player-meta-row">
+        <span id="localLabel" class="local-label"></span>
+        <span class="dot-sep">·</span>
+        <span id="thresholdNote" class="threshold-note"></span>
+      </div>
+
+      <div class="up-next-heading">UP NEXT</div>
+      <div id="upNextCard" class="up-next-card" hidden>
+        <div class="up-next-thumb">▶</div>
+        <div class="up-next-info">
+          <div id="upNextTitle" class="up-next-title"></div>
+          <div id="upNextMeta" class="up-next-meta"></div>
+        </div>
+        <span id="upNextLang" class="lang-badge"></span>
+        <div class="chevron">›</div>
+      </div>
+
+      <p id="playerHint" class="player-hint"></p>
+    </div>
+  </section>
+
+  <!-- Screen 4 — Badges & Progress -->
+  <section id="screen-badges" class="screen" hidden>
+    <button id="badgesBackBtn" class="link-back badges-back" type="button">‹ Playlist</button>
+    <h2 class="badges-title">Badges &amp; progress</h2>
+
+    <div class="progress-card">
+      <div class="badges-points-row">
+        <div id="badgesPoints" class="badges-points-value">0</div>
+        <div class="stat-label">points</div>
+      </div>
+      <div class="rainbow-bar-track">
+        <div id="badgesRainbowFill" class="rainbow-bar-fill"></div>
+      </div>
+      <div class="badges-summary-row">
+        <span id="badgesPctLabel"></span>
+        <span id="badgesCountLabel"></span>
+      </div>
+    </div>
+
+    <div id="badgesGrid" class="badge-list"></div>
+  </section>
+
+</div>
+
+<!-- Screen 3 — Completion Moment. Overlays Screen 2 the instant a video
+     crosses the completion threshold. -->
+<div id="completionModal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <div id="modalIconRing" class="modal-icon-ring"><span id="modalIcon"></span></div>
+    <div id="modalHead" class="modal-head"></div>
+    <div id="modalSub" class="modal-sub"></div>
+    <div id="modalPoints" class="modal-points"></div>
+    <div id="modalBadge" class="modal-badge" hidden>
+      <div id="modalBadgeIcon" class="modal-badge-icon"></div>
+      <div>
+        <div id="modalBadgeName" class="modal-badge-name"></div>
+        <div id="modalBadgeLine" class="modal-badge-line"></div>
+      </div>
+    </div>
+    <div id="modalFoot" class="modal-foot"></div>
+    <div class="modal-actions">
+      <button id="modalPrimaryBtn" class="modal-primary-btn" type="button"></button>
+      <button id="modalSecondaryBtn" class="modal-secondary-btn" type="button">Back to playlist</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

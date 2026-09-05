@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>LLCA Admin — Cohort Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Nunito:wght@800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="admin-app">
+
+  <!-- Passcode gate. Not real security — see config.js. Keeps this
+       screen out of the member-facing flow entirely (Screen 5 spec). -->
+  <section id="gate-screen" class="admin-gate">
+    <form id="passcodeForm" class="passcode-card">
+      <h1 class="admin-gate-title">Admin access</h1>
+      <p class="admin-gate-sub">Enter the passcode to view cohort progress.</p>
+      <input id="passcodeInput" class="passcode-input" type="password" autocomplete="off" placeholder="Passcode">
+      <button class="passcode-submit" type="submit">Unlock</button>
+      <p id="passcodeError" class="passcode-error" hidden>Wrong passcode — try again.</p>
+    </form>
+  </section>
+
+  <!-- Screen 5 — Cohort Overview -->
+  <section id="cohort-screen" class="cohort-screen" hidden>
+    <header class="cohort-header">
+      <div>
+        <h1 class="cohort-title">Cohort progress</h1>
+        <p id="cohortMeta" class="cohort-meta"></p>
+      </div>
+      <div class="cohort-average">
+        <div id="cohortAverageValue" class="cohort-average-value"></div>
+        <div class="stat-label">cohort average</div>
+      </div>
+    </header>
+
+    <div class="roster-table">
+      <div class="roster-row roster-row--header">
+        <div class="roster-col-member">Member</div>
+        <div class="roster-col-progress">Progress</div>
+        <div class="roster-col-videos">Videos</div>
+        <div class="roster-col-pct">%</div>
+      </div>
+      <div id="rosterRows"></div>
+    </div>
+  </section>
+
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>
