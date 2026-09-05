@@ -52,7 +52,11 @@ netlify/functions/sheets.js   the one serverless function — see below
 - **Screen 2** — real YouTube IFrame Player API driving watch %. **Verified
   actually playing on the live production domain**, not just localhost.
 - **Screen 3** — real completion modal (points-only / badge-unlock / 100%
-  finale states).
+  finale states). `CONFIG.completionThreshold` is **100%**, not 90 — a
+  member must finish the whole video, not just reach 90%, so no one skips
+  the tail end of the content. Has a dismiss-only **X** close button
+  (top-right of the card) that just hides the modal, no navigation —
+  distinct from the primary/secondary buttons which do navigate.
 - **Screen 4** — badges as rows of progress bars: solid color tiers below
   90% (red <30, orange 30-69, green 70-89), rainbow gradient at ≥90%. Hat
   Trick and year badges get real partial credit, not just locked/unlocked.
@@ -118,6 +122,39 @@ don't remove either without fixing the raw Sheet data first.
   by loading the YouTube script **last**, after `js/app.js`; also added a
   defensive check in `app.js` itself (`if (YT.Player) onYouTubeIframeAPIReady()`)
   in case some other caching quirk still lets YT finish first.
+- **Write-path row-index bug**: the phantom-header-row fix (above) made
+  `getProgressRows()` filter out non-data rows for read callers, but the
+  `POST` write handler still computed `sheetRow = 3 + rowIndex` against
+  that *filtered* array — indices no longer matched real sheet rows once
+  filtering could skip rows. Fixed by having the write path read
+  `PROGRESS_RANGE` **raw** (unfiltered) and compute `sheetRow = rowIndex + 1`
+  directly from that A1-based range. This was silently causing updates to
+  land as duplicate appended rows instead of overwriting the right one.
+- **`buildProgressMap` let a later duplicate row mask a real completion**:
+  if a video had more than one Progress row (a duplicate/stray from the
+  bug above, or a retried write), whichever row came *last* in sheet order
+  won — so a real "done" row followed by a stray leftover "partial" row
+  would display as still-in-progress. Fixed: a completed row always wins
+  regardless of row order; among multiple non-done rows, highest % wins.
+- **Overview tab timestamps never showed, even with correct Progress
+  data**: the sheet's own pre-existing formulas compare the Completed
+  column to `TRUE()` with strict equality —
+  `IF(INDEX(Progress!$D:$D, MATCH(...))=TRUE(), ...)`. The Function was
+  writing the **number** `1`/`0` for that column, which looks equivalent
+  but does not satisfy that comparison — Google Sheets needs an actual
+  JSON **boolean** in the write payload to store a real boolean cell.
+  Fixed by writing `completed` (a real JS boolean) instead of `1`/`0`.
+  Confirmed live: a fresh completion's timestamp now shows correctly in
+  Overview. Rows written *before* this fix keep their numeric value and
+  won't retroactively appear — harmless, since it was only test data
+  under the admin's own token, not real members.
+- **Completion modal unreachable in mobile landscape**: `.modal-overlay`
+  used `display:flex; align-items:center` with no overflow handling — a
+  card taller than a short landscape viewport got clipped above the fold
+  with no way to scroll up to the close button. Fixed by switching the
+  overlay to block layout with its own `overflow-y:auto` and centering
+  the card via `margin:auto` instead of flexbox, so it's always reachable
+  regardless of viewport height.
 
 ## Backend — Build Notes #6, now live
 
@@ -152,10 +189,9 @@ don't remove either without fixing the raw Sheet data first.
 - `GET ?resource=roster&passcode=...` — real server-side passcode
   enforcement, confirmed 401 on a wrong passcode ✅
 - `POST ?resource=progress` (the write path — marking a video watched) —
-  **written but not yet exercised against the real Sheet.** Confirm by
-  actually watching a video through to completion on the live site and
-  checking a row appears in the Progress tab. This is the one remaining
-  unverified piece.
+  **confirmed working live**, including the Overview tab's completion
+  timestamp displaying correctly (see the boolean-vs-number bug above —
+  that's what made it look broken initially; it's fixed now).
 
 **Git/Netlify — done:**
 - Repo: `git@github-llca:llca-events/csa_videos.git`, pushed, `main`
@@ -168,12 +204,15 @@ don't remove either without fixing the raw Sheet data first.
 - `.gitignore` excludes `*.xlsx`, `.DS_Store`, `node_modules/`, `.netlify/`.
 
 ## What's actually left
-1. **Verify the write path** — watch a video to completion on the live
-   site, confirm a Progress row appears with the right Token/Watched
-   %/Completed/Points/Key values.
-2. **Fill in the real roster** — as LLCA sends member names, paste them
+1. **Fill in the real roster** — as LLCA sends member names, paste them
    into the live Sheet's Roster tab against the pre-generated tokens.
-3. Nothing else is outstanding from Build Notes — this was the last item.
+2. **Optional cleanup**: the admin's own test token (`2q747z`) has some
+   duplicate/stray Progress rows and a few early completions stored with
+   the old numeric `1` (pre-boolean-fix) that won't show in Overview.
+   Harmless (not real member data), but can be manually deleted from the
+   Progress tab if it's distracting.
+3. Nothing else is outstanding from Build Notes — backend wiring, all 5
+   screens, and every bug found during live testing are resolved.
 
 ## Testing conventions used throughout this build
 - Local preview (mock mode only — set `CONFIG.useMockData = true` first):
