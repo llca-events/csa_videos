@@ -222,6 +222,8 @@ exports.handler = async (event) => {
     return json(404, { error: 'unknown resource/method' });
   } catch (err) {
     console.error(err);
-    return json(500, { error: 'internal error' });
+    // TEMPORARY: surfacing err.message to speed up first-deploy debugging.
+    // Revert to a bare 'internal error' once the backend is confirmed working.
+    return json(500, { error: 'internal error', detail: err.message });
   }
 };
