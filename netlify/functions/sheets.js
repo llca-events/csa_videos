@@ -169,6 +169,17 @@ exports.handler = async (event) => {
       return json(200, buildProgressMap(videos, mine));
     }
 
+    // TEMPORARY: raw dump of a token's actual Progress rows, in sheet
+    // order, to debug the write path. Remove once confirmed working.
+    if (event.httpMethod === 'GET' && resource === 'progress-raw') {
+      if (!params.token) return json(400, { error: 'token required' });
+      const rawRows = await readRange(sheets, PROGRESS_RANGE);
+      const mine = rawRows
+        .map((r, i) => ({ sheetRow: i + 1, row: r }))
+        .filter((x) => x.row[0] === params.token);
+      return json(200, mine);
+    }
+
     if (event.httpMethod === 'GET' && resource === 'roster') {
       // Real access control — the client-side gate in admin.js is only
       // UX; this check is what actually protects the data.
@@ -196,9 +207,14 @@ exports.handler = async (event) => {
       const { token, videoId, status, pct, points } = body;
       if (!token || !videoId) return json(400, { error: 'token and videoId required' });
 
-      const progressRows = await getProgressRows(sheets);
+      // Raw, unfiltered read here — getProgressRows() drops the header/title
+      // rows for callers that just need clean data, which shifts array
+      // indices away from real sheet row numbers. The write path needs the
+      // actual row number, so it reads PROGRESS_RANGE directly and computes
+      // sheetRow from that raw index (range starts at A1, so index+1 = row).
+      const rawProgressRows = await readRange(sheets, PROGRESS_RANGE);
       const key = `${token}|VID${videoId}`;
-      const rowIndex = progressRows.findIndex((r) => r[6] === key);
+      const rowIndex = rawProgressRows.findIndex((r) => r[6] === key);
       const completed = status === 'done';
       const watchedFraction = completed ? 1 : Math.max(0, Math.min(1, Number(pct || 0) / 100));
       const now = new Date().toISOString();
@@ -221,7 +237,7 @@ exports.handler = async (event) => {
           requestBody: { values }
         });
       } else {
-        const sheetRow = 3 + rowIndex; // data starts at row 3
+        const sheetRow = rowIndex + 1; // PROGRESS_RANGE starts at A1, so index 0 = row 1
         await sheets.spreadsheets.values.update({
           spreadsheetId: process.env.GOOGLE_SHEET_ID,
           range: `Progress!A${sheetRow}:G${sheetRow}`,
