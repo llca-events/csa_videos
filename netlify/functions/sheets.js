@@ -20,9 +20,14 @@
 
 const { google } = require('googleapis');
 
-const VIDEOS_RANGE = 'Videos!A3:F';
-const ROSTER_RANGE = 'Roster!A4:D';
-const PROGRESS_RANGE = 'Progress!A3:G';
+// Ranges are deliberately wide (whole tab) rather than pinned to an
+// assumed data-start row — converting the xlsx template to native
+// Google Sheets shifted rows by one vs. the original file, which leaked
+// the header row through as a phantom entry when ranges were exact.
+// Real rows are picked out by content shape below instead.
+const VIDEOS_RANGE = 'Videos!A1:F';
+const ROSTER_RANGE = 'Roster!A1:D';
+const PROGRESS_RANGE = 'Progress!A1:G';
 
 // Same fix as js/api.js — the sheet's Duration (sec) column is off by
 // ×60 at the source. Kept here too since this is a separate runtime.
@@ -72,7 +77,10 @@ async function readRange(sheets, range) {
 async function getVideos(sheets) {
   const rows = await readRange(sheets, VIDEOS_RANGE);
   return rows
-    .filter((r) => r[0])
+    // Real data rows only — Video ID must actually be numeric, which
+    // discards the title row, the header row, and any blank rows
+    // regardless of exactly which row number they land on.
+    .filter((r) => r[0] && /^\d+$/.test(String(r[0]).trim()))
     .map((r) => {
       const [id, year, title, lang, link, seconds] = r;
       const durationSeconds = Math.round(Number(seconds || 0) / DURATION_CORRECTION_FACTOR);
@@ -90,15 +98,21 @@ async function getVideos(sheets) {
 
 async function getRosterRows(sheets) {
   const rows = await readRange(sheets, ROSTER_RANGE);
-  // Only rows with a real name assigned — unused pre-generated tokens
-  // shouldn't show up as phantom 0% members.
+  // Real data rows only: token must look like one of our generated
+  // tokens (lowercase alnum) and a name must be assigned — this discards
+  // the title row, blank spacer row, header row ("Token"/"Name" would
+  // otherwise pass a bare "both columns non-empty" check), and unused
+  // pre-generated tokens with no member assigned yet.
   return rows
-    .filter((r) => r[0] && r[1])
+    .filter((r) => r[0] && r[1] && /^[a-z0-9]{4,10}$/.test(String(r[0]).trim()))
     .map((r) => ({ token: r[0], name: r[1], email: r[2] || '', dateAdded: r[3] || '' }));
 }
 
 async function getProgressRows(sheets) {
-  return readRange(sheets, PROGRESS_RANGE);
+  const rows = await readRange(sheets, PROGRESS_RANGE);
+  // Real data rows only — Video ID (column B) must be numeric, which
+  // discards the title/header rows the same way getVideos does.
+  return rows.filter((r) => r[1] && /^\d+$/.test(String(r[1]).trim()));
 }
 
 function progressRowsForToken(progressRows, token) {
