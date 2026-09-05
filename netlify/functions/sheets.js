@@ -192,14 +192,16 @@ exports.handler = async (event) => {
     // a small range, to see what the xlsx→Sheets conversion left intact
     // vs. broken. Remove once the timestamp-not-showing issue is fixed.
     if (event.httpMethod === 'GET' && resource === 'overview-debug') {
-      // Narrowed to just column E (the real column for token 2q747z,
-      // confirmed via the token-row check) to avoid truncated output.
+      // Column E = real column for token 2q747z (confirmed via the
+      // token-row check). Range is caller-specified via ?range=E1:E20
+      // so this doesn't need a redeploy per row checked.
+      const range = `Overview!${params.range || 'E1:E6'}`;
       const [formulas, values] = await Promise.all([
         sheets.spreadsheets.values.get({
-          spreadsheetId: process.env.GOOGLE_SHEET_ID, range: 'Overview!E1:E6', valueRenderOption: 'FORMULA'
+          spreadsheetId: process.env.GOOGLE_SHEET_ID, range, valueRenderOption: 'FORMULA'
         }),
         sheets.spreadsheets.values.get({
-          spreadsheetId: process.env.GOOGLE_SHEET_ID, range: 'Overview!E1:E6', valueRenderOption: 'FORMATTED_VALUE'
+          spreadsheetId: process.env.GOOGLE_SHEET_ID, range, valueRenderOption: 'FORMATTED_VALUE'
         })
       ]);
       return json(200, { formulas: formulas.data.values || [], values: values.data.values || [] });
