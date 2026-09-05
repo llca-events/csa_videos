@@ -1,0 +1,8 @@
+{
+  "name": "llca-video-tracker",
+  "private": true,
+  "description": "LLCA Cybersecurity Video Tracker — static frontend + one Netlify Function for Google Sheets.",
+  "dependencies": {
+    "googleapis": "^140.0.0"
+  }
+}

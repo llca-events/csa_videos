@@ -124,8 +124,11 @@ const CATALOG = RAW_VIDEO_ROWS.map(([id, year, title, lang, link, seconds]) => {
 });
 
 function getVideos() {
-  // Later: fetch(`${CONFIG.sheetsApiEndpoint}/videos`).then(r => r.json())
-  return Promise.resolve(CATALOG);
+  if (CONFIG.useMockData) return Promise.resolve(CATALOG);
+  return fetch(`${CONFIG.sheetsApiEndpoint}?resource=videos`).then((res) => {
+    if (!res.ok) throw new Error('failed to load videos');
+    return res.json();
+  });
 }
 
 // ---------------------------------------------------------------------
@@ -209,30 +212,49 @@ function saveOverrides(token, overrides) {
 }
 
 function getMemberProgress(token) {
-  // Later: fetch(`${CONFIG.sheetsApiEndpoint}/progress?m=${token}`)
-  const seed = seedProgressFor(token);
-  const overrides = loadOverrides(token);
-  const merged = Object.assign({}, seed, overrides);
-  return Promise.resolve(merged);
+  if (CONFIG.useMockData) {
+    const seed = seedProgressFor(token);
+    const overrides = loadOverrides(token);
+    return Promise.resolve(Object.assign({}, seed, overrides));
+  }
+  return fetch(`${CONFIG.sheetsApiEndpoint}?resource=progress&token=${encodeURIComponent(token)}`).then((res) => {
+    if (!res.ok) throw new Error('failed to load progress');
+    return res.json();
+  });
 }
 
 function getMemberName(token) {
-  // Later: comes from the roster lookup keyed by the same URL token.
-  const names = { 'demo-fresh': 'Alex', 'demo-mid': 'Jane', 'demo-done': 'Priya' };
-  return Promise.resolve(names[token] || 'Member');
+  if (CONFIG.useMockData) {
+    const names = { 'demo-fresh': 'Alex', 'demo-mid': 'Jane', 'demo-done': 'Priya' };
+    return Promise.resolve(names[token] || 'Member');
+  }
+  return fetch(`${CONFIG.sheetsApiEndpoint}?resource=member&token=${encodeURIComponent(token)}`).then((res) => {
+    if (!res.ok) throw new Error('failed to load member');
+    return res.json();
+  }).then((data) => data.name || 'Member');
 }
 
 function markVideoStatus(token, videoId, status, pct) {
-  const overrides = loadOverrides(token);
-  overrides[videoId] = {
-    videoId,
-    status,
-    pct,
-    completedAt: status === 'done' ? new Date().toISOString() : null
-  };
-  saveOverrides(token, overrides);
-  // Later: POST to CONFIG.sheetsApiEndpoint to write the Progress row.
-  return Promise.resolve(overrides[videoId]);
+  if (CONFIG.useMockData) {
+    const overrides = loadOverrides(token);
+    overrides[videoId] = {
+      videoId,
+      status,
+      pct,
+      completedAt: status === 'done' ? new Date().toISOString() : null
+    };
+    saveOverrides(token, overrides);
+    return Promise.resolve(overrides[videoId]);
+  }
+  const points = status === 'done' ? CONFIG.pointsPerVideo : 0;
+  return fetch(`${CONFIG.sheetsApiEndpoint}?resource=progress`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, videoId, status, pct, points })
+  }).then((res) => {
+    if (!res.ok) throw new Error('failed to save progress');
+    return res.json();
+  });
 }
 
 // ---------------------------------------------------------------------
@@ -257,16 +279,25 @@ const MOCK_ROSTER = [
   ['Henrik Larsen', 64], ['Grace Mutua', 65], ['Pavel Horak', 65], ['Isabel Cruz', 65]
 ];
 
-function getRoster() {
-  // Later: fetch(`${CONFIG.sheetsApiEndpoint}/roster`).then(r => r.json())
-  const total = CATALOG.length;
-  const roster = MOCK_ROSTER.map(([name, doneCount]) => ({
-    name,
-    doneCount,
-    totalCount: total,
-    pct: Math.round((doneCount / total) * 100)
-  }));
-  return Promise.resolve(roster);
+// Real access control lives server-side in the Netlify Function — this
+// passcode is only checked client-side in mock mode, for demo purposes.
+function getRoster(passcode) {
+  if (CONFIG.useMockData) {
+    if (passcode !== CONFIG.adminPasscode) return Promise.reject(new Error('wrong passcode'));
+    const total = CATALOG.length;
+    const roster = MOCK_ROSTER.map(([name, doneCount]) => ({
+      name,
+      doneCount,
+      totalCount: total,
+      pct: Math.round((doneCount / total) * 100)
+    }));
+    return Promise.resolve(roster);
+  }
+  return fetch(`${CONFIG.sheetsApiEndpoint}?resource=roster&passcode=${encodeURIComponent(passcode)}`).then((res) => {
+    if (res.status === 401) throw new Error('wrong passcode');
+    if (!res.ok) throw new Error('failed to load roster');
+    return res.json();
+  });
 }
 
 // ---------------------------------------------------------------------

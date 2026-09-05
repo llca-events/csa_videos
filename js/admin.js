@@ -24,19 +24,32 @@ function progressBarColor(pct) {
   return '#2ECC71';
 }
 
-function isUnlocked() {
+// The stored value is the passcode itself, not just an unlocked flag —
+// every roster fetch has to carry it since the real check now happens
+// server-side (netlify/functions/sheets.js) on every request, not once.
+// sessionStorage is per-tab and cleared on tab close, which is an
+// acceptable trust level for this low-sensitivity admin view.
+function getStoredPasscode() {
   try {
-    return sessionStorage.getItem(CONFIG.adminSessionKey) === '1';
+    return sessionStorage.getItem(CONFIG.adminSessionKey) || '';
   } catch (e) {
-    return false;
+    return '';
   }
 }
 
-function unlock() {
+function storePasscode(passcode) {
   try {
-    sessionStorage.setItem(CONFIG.adminSessionKey, '1');
+    sessionStorage.setItem(CONFIG.adminSessionKey, passcode);
   } catch (e) {
     // sessionStorage unavailable — just re-prompt next load, harmless.
+  }
+}
+
+function clearStoredPasscode() {
+  try {
+    sessionStorage.removeItem(CONFIG.adminSessionKey);
+  } catch (e) {
+    // ignore
   }
 }
 
@@ -45,45 +58,58 @@ function showGate() {
   els.cohortScreen.hidden = true;
 }
 
-function showCohort() {
-  els.gateScreen.hidden = true;
-  els.cohortScreen.hidden = false;
-  loadAndRenderRoster();
+function renderRoster(roster) {
+  const sorted = roster.slice().sort((a, b) => a.pct - b.pct);
+  const average = roster.length
+    ? Math.round(roster.reduce((sum, r) => sum + r.pct, 0) / roster.length)
+    : 0;
+  const today = new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' });
+
+  els.cohortMeta.textContent = `${roster.length} members · sorted lowest progress first · updated ${today}`;
+  els.cohortAverageValue.textContent = `${average}%`;
+
+  els.rosterRows.innerHTML = '';
+  sorted.forEach((r) => {
+    const rainbow = r.pct >= 90;
+    const nameColor = r.pct < 30 ? '#1B1A17' : '#3D3A34';
+    const pctColor = r.pct === 0 ? '#A9A49A' : '#1B1A17';
+    const barWidth = Math.max(r.pct, r.pct > 0 ? 1.5 : 0);
+
+    const row = document.createElement('div');
+    row.className = 'roster-row';
+    row.innerHTML = `
+      <div class="roster-col-member" style="color:${nameColor}">${r.name}</div>
+      <div class="roster-col-progress">
+        <div class="roster-bar-track">
+          <div class="roster-bar-fill${rainbow ? ' roster-bar-fill--rainbow' : ''}"
+               style="width:${barWidth}%${rainbow ? '' : `;background:${progressBarColor(r.pct)}`}"></div>
+        </div>
+      </div>
+      <div class="roster-col-videos">${r.doneCount} / ${r.totalCount}</div>
+      <div class="roster-col-pct" style="color:${pctColor}">${r.pct}%</div>
+    `;
+    els.rosterRows.appendChild(row);
+  });
 }
 
-function loadAndRenderRoster() {
-  getRoster().then((roster) => {
-    const sorted = roster.slice().sort((a, b) => a.pct - b.pct);
-    const average = roster.length
-      ? Math.round(roster.reduce((sum, r) => sum + r.pct, 0) / roster.length)
-      : 0;
-    const today = new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' });
-
-    els.cohortMeta.textContent = `${roster.length} members · sorted lowest progress first · updated ${today}`;
-    els.cohortAverageValue.textContent = `${average}%`;
-
-    els.rosterRows.innerHTML = '';
-    sorted.forEach((r) => {
-      const rainbow = r.pct >= 90;
-      const nameColor = r.pct < 30 ? '#1B1A17' : '#3D3A34';
-      const pctColor = r.pct === 0 ? '#A9A49A' : '#1B1A17';
-      const barWidth = Math.max(r.pct, r.pct > 0 ? 1.5 : 0);
-
-      const row = document.createElement('div');
-      row.className = 'roster-row';
-      row.innerHTML = `
-        <div class="roster-col-member" style="color:${nameColor}">${r.name}</div>
-        <div class="roster-col-progress">
-          <div class="roster-bar-track">
-            <div class="roster-bar-fill${rainbow ? ' roster-bar-fill--rainbow' : ''}"
-                 style="width:${barWidth}%${rainbow ? '' : `;background:${progressBarColor(r.pct)}`}"></div>
-          </div>
-        </div>
-        <div class="roster-col-videos">${r.doneCount} / ${r.totalCount}</div>
-        <div class="roster-col-pct" style="color:${pctColor}">${r.pct}%</div>
-      `;
-      els.rosterRows.appendChild(row);
-    });
+// Tries a passcode against the real backend check. `silent` suppresses
+// the error UI — used for the auto-unlock-on-load attempt with a stored
+// passcode, where a failure should just fall back to the gate quietly.
+function tryUnlock(passcode, { silent } = {}) {
+  return getRoster(passcode).then((roster) => {
+    els.passcodeError.hidden = true;
+    storePasscode(passcode);
+    els.gateScreen.hidden = true;
+    els.cohortScreen.hidden = false;
+    renderRoster(roster);
+  }).catch(() => {
+    clearStoredPasscode();
+    showGate();
+    if (!silent) {
+      els.passcodeError.hidden = false;
+      els.passcodeInput.value = '';
+      els.passcodeInput.focus();
+    }
   });
 }
 
@@ -92,19 +118,12 @@ function init() {
 
   els.passcodeForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    if (els.passcodeInput.value === CONFIG.adminPasscode) {
-      els.passcodeError.hidden = true;
-      unlock();
-      showCohort();
-    } else {
-      els.passcodeError.hidden = false;
-      els.passcodeInput.value = '';
-      els.passcodeInput.focus();
-    }
+    tryUnlock(els.passcodeInput.value);
   });
 
-  if (isUnlocked()) {
-    showCohort();
+  const stored = getStoredPasscode();
+  if (stored) {
+    tryUnlock(stored, { silent: true });
   } else {
     showGate();
   }

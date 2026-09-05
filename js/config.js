@@ -22,11 +22,12 @@ const CONFIG = {
     windowDays: 7
   },
 
-  // Backend wiring (Build Notes #6). Not live yet — frontend-only stage.
-  // Once the Netlify Function + Google Sheet are ready, api.js will fetch
-  // from this endpoint instead of using the mock data in api.js.
+  // Backend wiring (Build Notes #6) — LIVE. api.js now fetches from this
+  // endpoint instead of using the mock data in api.js. Flip useMockData
+  // back to true for local frontend-only testing (demo-fresh/mid/done
+  // tokens only work in mock mode).
   sheetsApiEndpoint: '/.netlify/functions/sheets',
-  useMockData: true,
+  useMockData: false,
 
   // Member is identified by a URL token (?m=<token>), never a name prop.
   // Falls back to a demo token so the app is viewable with no query string
@@ -34,16 +35,12 @@ const CONFIG = {
   memberTokenParam: 'm',
   demoMemberToken: 'demo-mid',
 
-  // Screen 5 (admin.html) gate — Design Spec: "sits behind a simple
-  // passcode, separate from the personal-link system members use."
-  // IMPORTANT: this is a plaintext client-side check, not real security —
-  // anyone can read this file and see the passcode. It's a deterrent
-  // against a member stumbling onto the URL, nothing more. Real access
-  // control has to happen server-side once the Netlify Function is wired
-  // (Build Notes #6): the function should require this passcode — or a
-  // proper admin token — before it will return roster/progress rows,
-  // so the real data is protected even if this client-side gate is
-  // bypassed entirely.
+  // Screen 5 (admin/) gate. Real enforcement now lives server-side in
+  // netlify/functions/sheets.js (checks against the ADMIN_PASSCODE env
+  // var) — the roster endpoint returns 401 for a wrong passcode
+  // regardless of anything on this page. This constant is only used as
+  // the mock-mode fallback (CONFIG.useMockData: true) for local demo
+  // testing without a deployed function; it has no effect in production.
   adminPasscode: 'llca-admin-2026',
   adminSessionKey: 'llca-admin-unlocked'
 };
