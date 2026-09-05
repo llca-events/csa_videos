@@ -236,25 +236,6 @@ exports.handler = async (event) => {
     return json(404, { error: 'unknown resource/method' });
   } catch (err) {
     console.error(err);
-    // TEMPORARY: surfacing err.message + non-secret env diagnostics to
-    // speed up first-deploy debugging. Revert once confirmed working.
-    const rawKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '';
-    return json(500, {
-      error: 'internal error',
-      detail: err.message,
-      debug: {
-        commit: process.env.COMMIT_REF || null,
-        emailSet: !!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        emailLength: (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '').length,
-        emailValue: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || null,
-        sheetIdSet: !!process.env.GOOGLE_SHEET_ID,
-        sheetIdValue: process.env.GOOGLE_SHEET_ID || null,
-        deployedAt: '2026-09-05T-check3',
-        keySet: !!rawKey,
-        keyLength: rawKey.length,
-        keyStartsWithHeader: rawKey.replace(/\\n/g, '\n').trim().startsWith('-----BEGIN PRIVATE KEY-----'),
-        keyEndsWithFooter: rawKey.replace(/\\n/g, '\n').trim().endsWith('-----END PRIVATE KEY-----')
-      }
-    });
+    return json(500, { error: 'internal error' });
   }
 };
