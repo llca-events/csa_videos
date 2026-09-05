@@ -188,6 +188,18 @@ exports.handler = async (event) => {
       return json(200, mine);
     }
 
+    // TEMPORARY: dump Overview's actual formulas (not computed values) for
+    // a small range, to see what the xlsx→Sheets conversion left intact
+    // vs. broken. Remove once the timestamp-not-showing issue is fixed.
+    if (event.httpMethod === 'GET' && resource === 'overview-debug') {
+      const res = await sheets.spreadsheets.values.get({
+        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        range: 'Overview!A1:F5',
+        valueRenderOption: 'FORMULA'
+      });
+      return json(200, res.data.values || []);
+    }
+
     if (event.httpMethod === 'GET' && resource === 'roster') {
       // Real access control — the client-side gate in admin.js is only
       // UX; this check is what actually protects the data.
