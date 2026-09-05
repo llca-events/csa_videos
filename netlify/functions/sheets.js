@@ -69,7 +69,13 @@ function getSheetsClient() {
 async function readRange(sheets, range) {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: process.env.GOOGLE_SHEET_ID,
-    range
+    range,
+    // Default FORMATTED_VALUE renders every cell as a display string —
+    // a real boolean cell (the Completed column) comes back as "TRUE"/
+    // "FALSE" text, not JS true/false, which silently broke the
+    // r[3] === true check below. UNFORMATTED_VALUE returns actual JS
+    // booleans and numbers instead.
+    valueRenderOption: 'UNFORMATTED_VALUE'
   });
   return res.data.values || [];
 }

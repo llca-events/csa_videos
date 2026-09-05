@@ -155,6 +155,22 @@ don't remove either without fixing the raw Sheet data first.
   overlay to block layout with its own `overflow-y:auto` and centering
   the card via `margin:auto` instead of flexbox, so it's always reachable
   regardless of viewport height.
+- **Green completed-tick never showed after the boolean-write fix**:
+  `readRange()` called `spreadsheets.values.get` with no
+  `valueRenderOption`, so the default `FORMATTED_VALUE` returned every
+  cell as a display string — a real boolean `Completed` cell came back as
+  the string `"TRUE"`/`"FALSE"`, not JS `true`/`false`. `buildProgressMap`'s
+  `completed` check (`r[3] === '1' || r[3] === 1 || r[3] === true`) never
+  matched, so every fresh completion read back as `partial` at 100%
+  (orange dot, "100% watched") instead of `done` (green ✓). Only surfaced
+  once the earlier boolean-vs-number fix (see above) started writing real
+  booleans instead of `1`/`0` — rows written as numbers still happened to
+  round-trip through `FORMATTED_VALUE` as `"1"`/`"0"`, masking this until
+  then. Fixed by adding `valueRenderOption: 'UNFORMATTED_VALUE'` to
+  `readRange()`, which returns raw JS booleans/numbers — same
+  `completed` check now matches both old numeric rows and new boolean
+  ones. Affects every read path that goes through `getProgressRows`
+  (member progress, admin cohort table).
 
 ## Backend — Build Notes #6, now live
 
