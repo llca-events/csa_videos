@@ -95,22 +95,38 @@ function renderRoster(roster) {
 // Tries a passcode against the real backend check. `silent` suppresses
 // the error UI — used for the auto-unlock-on-load attempt with a stored
 // passcode, where a failure should just fall back to the gate quietly.
+//
+// getRoster() throws 'wrong passcode' specifically on a 401 — anything
+// else (500, network drop) is the same cold-start/transient-blip class
+// hit elsewhere in this app (see CLAUDE.md), not an actual bad passcode.
+// Treating every failure as "wrong passcode" was misleading — a real
+// admin typing their real, unchanged passcode during a blip saw the same
+// message as an actual typo. Retry once on a non-401 failure before
+// giving up, and show a distinct message for "couldn't reach the
+// server" vs. "that passcode is wrong."
 function tryUnlock(passcode, { silent } = {}) {
-  return getRoster(passcode).then((roster) => {
-    els.passcodeError.hidden = true;
-    storePasscode(passcode);
-    els.gateScreen.hidden = true;
-    els.cohortScreen.hidden = false;
-    renderRoster(roster);
-  }).catch(() => {
-    clearStoredPasscode();
-    showGate();
-    if (!silent) {
-      els.passcodeError.hidden = false;
-      els.passcodeInput.value = '';
-      els.passcodeInput.focus();
-    }
-  });
+  const attempt = () => getRoster(passcode);
+  return attempt()
+    .catch((err) => (err.message === 'wrong passcode' ? Promise.reject(err) : attempt()))
+    .then((roster) => {
+      els.passcodeError.hidden = true;
+      storePasscode(passcode);
+      els.gateScreen.hidden = true;
+      els.cohortScreen.hidden = false;
+      renderRoster(roster);
+    })
+    .catch((err) => {
+      clearStoredPasscode();
+      showGate();
+      if (!silent) {
+        els.passcodeError.textContent = err.message === 'wrong passcode'
+          ? 'Wrong passcode — try again.'
+          : "Couldn't reach the server — try again in a moment.";
+        els.passcodeError.hidden = false;
+        els.passcodeInput.value = '';
+        els.passcodeInput.focus();
+      }
+    });
 }
 
 function init() {

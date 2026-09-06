@@ -190,6 +190,18 @@ don't remove either without fixing the raw Sheet data first.
   an optimistic local "done" state so the modal always shows even if the
   persist never succeeds (logged to console in that last case so a
   genuinely-unsaved completion is still debuggable).
+- **Admin passcode gate showed "wrong passcode" on a real, unchanged,
+  correct passcode**: `tryUnlock()` in `admin.js` caught every
+  `getRoster()` failure identically — a genuine 401 (actually wrong
+  passcode) and a transient 500/network blip (same cold-start flakiness
+  as the other fixes above) both landed on the same generic "wrong
+  passcode" message. Confirmed live: the real passcode is
+  `llca-admin-2026`, and a `resource=roster` request failed with a bare
+  500 once, then succeeded immediately on retry with no code change.
+  Fixed by having `tryUnlock()` retry once on any failure that isn't
+  specifically the 401 `'wrong passcode'` error, and by showing a
+  distinct "couldn't reach the server" message for that case instead of
+  implying the passcode itself was wrong.
 
 ## Backend — Build Notes #6, now live
 
