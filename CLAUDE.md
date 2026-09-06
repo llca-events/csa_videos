@@ -180,6 +180,16 @@ don't remove either without fixing the raw Sheet data first.
   completion screen would just never fire. Lowered to 98 — a deliberate
   tradeoff of "must watch essentially the whole video" over the strict
   "must watch literally every reported frame."
+- **Completion screen sometimes just never appeared (separate cause)**:
+  `completeVideo()` called `markVideoStatus()` (the write to the Sheet)
+  with no `.catch()`. That write can reject — Netlify function cold
+  start, a brief network drop, a Sheets API rate-limit — and a rejected
+  promise never reaches `.then()`, so `showCompletionModal()` silently
+  never ran. No console error, nothing — looked exactly like "the video
+  didn't count." Fixed by retrying the write once, then falling back to
+  an optimistic local "done" state so the modal always shows even if the
+  persist never succeeds (logged to console in that last case so a
+  genuinely-unsaved completion is still debuggable).
 
 ## Backend — Build Notes #6, now live
 

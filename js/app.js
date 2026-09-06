@@ -407,18 +407,32 @@ function handleWatchProgress(pct) {
 
 function completeVideo(pct) {
   const before = earnedBadgeIds(progress);
-  markVideoStatus(memberToken, currentVideoId, 'done', 100).then((updated) => {
-    progress[currentVideoId] = updated;
-    const after = earnedBadgeIds(progress);
-    const newBadge = badgeDefs.filter((b) => after.indexOf(b.id) > -1 && before.indexOf(b.id) === -1).pop();
-    const finale = allVideos.every((v) => progress[v.id].status === 'done');
-    const v = allVideos.find((x) => x.id === currentVideoId);
-    const n = watchedCount();
-    const total = allVideos.length;
+  const videoId = currentVideoId;
+  // The write to the Sheet can blip (cold start, brief network drop,
+  // Sheets API rate-limit) — markVideoStatus rejects on that, and with
+  // no .catch() the completion screen would just silently never appear
+  // even though the member genuinely finished the video. Retry once,
+  // then fall back to an optimistic local "done" so the celebration
+  // always shows; the retry-failure case still gets logged so a
+  // never-actually-saved completion is debuggable.
+  markVideoStatus(memberToken, videoId, 'done', 100)
+    .catch(() => markVideoStatus(memberToken, videoId, 'done', 100))
+    .catch((err) => {
+      console.error('Failed to save completion after retry — showing it locally only', err);
+      return { videoId, status: 'done', pct: 100, completedAt: new Date().toISOString() };
+    })
+    .then((updated) => {
+      progress[videoId] = updated;
+      const after = earnedBadgeIds(progress);
+      const newBadge = badgeDefs.filter((b) => after.indexOf(b.id) > -1 && before.indexOf(b.id) === -1).pop();
+      const finale = allVideos.every((v) => progress[v.id].status === 'done');
+      const v = allVideos.find((x) => x.id === videoId);
+      const n = watchedCount();
+      const total = allVideos.length;
 
-    showCompletionModal({ video: v, newBadge, finale, n, total });
-    renderPlayerMeta();
-  });
+      showCompletionModal({ video: v, newBadge, finale, n, total });
+      renderPlayerMeta();
+    });
 }
 
 // ---------------------------------------------------------------------
