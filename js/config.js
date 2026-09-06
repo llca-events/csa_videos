@@ -4,9 +4,12 @@
 const CONFIG = {
   // Game rules (from design spec / mockup props panel)
   pointsPerVideo: 10,
-  completionThreshold: 100, // % of a video that counts as "watched" — must
-  // finish the whole thing, not just get most of the way through, so
-  // members don't miss content near the end.
+  completionThreshold: 98, // % of a video that counts as "watched". Was
+  // 100, but the YT IFrame API's progress polling doesn't always land
+  // exactly on 100 (buffering/timer granularity near the tail end), so a
+  // real member's video could finish playing without ever triggering the
+  // completion screen. 98 covers that gap while still requiring the tail
+  // end to be watched.
 
   // Badge thresholds are PERCENTAGES of the total catalog size, not fixed
   // counts — see LLCA_Tracker_Build_Notes.md #2. Resolved against the real

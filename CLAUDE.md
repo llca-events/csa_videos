@@ -52,9 +52,11 @@ netlify/functions/sheets.js   the one serverless function — see below
 - **Screen 2** — real YouTube IFrame Player API driving watch %. **Verified
   actually playing on the live production domain**, not just localhost.
 - **Screen 3** — real completion modal (points-only / badge-unlock / 100%
-  finale states). `CONFIG.completionThreshold` is **100%**, not 90 — a
-  member must finish the whole video, not just reach 90%, so no one skips
-  the tail end of the content. Has a dismiss-only **X** close button
+  finale states). `CONFIG.completionThreshold` is **98%** (was 100 —
+  changed because the YT IFrame API's progress polling doesn't always land
+  exactly on 100 near the tail end, which could leave a fully-watched
+  video never triggering the completion screen; 98 still requires
+  watching essentially the whole thing). Has a dismiss-only **X** close button
   (top-right of the card) that just hides the modal, no navigation —
   distinct from the primary/secondary buttons which do navigate.
 - **Screen 4** — badges as rows of progress bars: solid color tiers below
@@ -171,6 +173,13 @@ don't remove either without fixing the raw Sheet data first.
   `completed` check now matches both old numeric rows and new boolean
   ones. Affects every read path that goes through `getProgressRows`
   (member progress, admin cohort table).
+- **`completionThreshold: 100` sometimes never triggered completion**:
+  the YT IFrame API's progress polling samples on an interval and doesn't
+  always report exactly 100% right as a video ends (buffering, timer
+  granularity), so a member could genuinely finish watching and the
+  completion screen would just never fire. Lowered to 98 — a deliberate
+  tradeoff of "must watch essentially the whole video" over the strict
+  "must watch literally every reported frame."
 
 ## Backend — Build Notes #6, now live
 
