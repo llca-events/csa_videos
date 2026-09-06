@@ -260,6 +260,14 @@ don't remove either without fixing the raw Sheet data first.
    Progress tab if it's distracting.
 3. Nothing else is outstanding from Build Notes — backend wiring, all 5
    screens, and every bug found during live testing are resolved.
+4. **Known accepted gap**: the completion-write retry fix (see bug log)
+   shows the completion screen locally even if both save attempts fail,
+   but doesn't retry again after that — a completion can silently never
+   reach the Sheet, so a member's own screen can show a higher % than
+   admin's cohort view until they rewatch the affected video(s). Caught
+   live once already (member showed 69%, admin/Sheet truth was 66%, a
+   ~2-video gap). User's call: leave as is for now rather than add
+   background-retry/queueing.
 
 ## Testing conventions used throughout this build
 - Local preview (mock mode only — set `CONFIG.useMockData = true` first):
